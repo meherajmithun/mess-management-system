@@ -6,13 +6,13 @@ MessLedger is a work in progress TypeScript monorepo for a Bangladeshi bachelor 
 
 - PostgreSQL schema and initial migration for messes, users, sessions, rooms, periods, utilities, three account ledger categories, meals, bazar assignments, advances, purchases, fund entries, statements and audit.
 - Exact integer paisa allocation, signed account/fund entries, session login with Argon2id, CSRF checks, rate limited login, role and mess scoped API routes.
-- API routes for payment submission/review, room creation/assignment, utility posting, meal summary/daily entry, bazar assignments, advances/returns, purchase submission/review, meal calculation confirmation and period close.
+- API routes for payment submission/review, room creation/assignment, rent preview/post with exact daily proration, utility posting, meal summary/daily entry, bazar assignments, advances/returns, purchase submission/review, meal calculation confirmation and period close.
 - Responsive React shell with role-aware navigation, dashboard, payment workflow, basic record views, English/Bangla translations, PWA manifest and app-shell service worker.
 - Fictional eight-member seed, unit tests and one PostgreSQL-backed integration test.
 
 ## Critical gaps before release
 
-The current app does **not** satisfy the full proposal. Rent allocation posting and proration, vacancy handling, utility member-day proration, detailed meal completeness and mode transitions, physical meal-sheet PDFs, grocery mixed funding and reimbursements, refunds and reversals, close/reopen revision flow, CSV/PDF statements, secure file uploads, invitations/password reset, advanced tables/charts, complete bilingual copy, and comprehensive E2E/security testing remain. Personal purchase liability and manager top-ups have schema concepts but incomplete services. Period closing needs additional reconciliation gates and opening snapshot logic. Do not use this build for actual financial settlement.
+The current app does **not** satisfy the full proposal. Rent preview/post supports equal and custom per-day splits, but vacancy resolution and comprehensive join/leave validation remain. Utility member-day proration, detailed meal completeness and mode transitions, physical meal-sheet PDFs, grocery mixed funding and reimbursements, refunds and reversals, close/reopen revision flow, CSV/PDF statements, secure file uploads, invitations/password reset, advanced tables/charts, complete bilingual copy, and comprehensive E2E/security testing remain. Personal purchase liability and manager top-ups have schema concepts but incomplete services. Period closing needs additional reconciliation gates and opening snapshot logic. Do not use this build for actual financial settlement.
 
 The dependency audit currently reports five production dependency advisories, including Prisma tooling and i18next. These need review and remediation before deployment.
 
