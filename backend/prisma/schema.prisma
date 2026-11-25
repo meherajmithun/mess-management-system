@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+enum Role {
+ MANAGER
+ MEMBER
+}
+enum MemberStatus {
+ ACTIVE
+ INACTIVE
+ FORMER
+}
+enum PeriodStatus {
+ OPEN
+ REVIEW
+ CLOSED
+}
+enum Category {
+ RENT
+ UTILITY
+ MEAL
+}
+enum ReviewStatus {
+ PENDING
+ APPROVED
+ REJECTED
+ REVERSED
+}
+enum MealMode {
+ SUMMARY
+ DETAILED
+}
+enum FundingKind {
+ ADVANCE
+ DIRECT
+ PERSONAL
+}
+
+model Mess {
+  id String @id @default(uuid())
+  name String
+  address String?
+  timezone String @default("Asia/Dhaka")
+  createdAt DateTime @default(now())
+  members Membership[]
+  rooms Room[]
+  periods Period[]
+  utilityCategories UtilityCategory[]
+  fundEntries FundEntry[]
+  audits AuditLog[]
+}
+model User {
+  id String @id @default(uuid())
+  phone String @unique
+  name String
+  passwordHash String
+  active Boolean @default(true)
+  locale String @default("en")
+  createdAt DateTime @default(now())
+  memberships Membership[]
+  sessions Session[]
+}
+model Session {
+  id String @id @default(uuid())
+  tokenHash String @unique
+  userId String
+  user User @relation(fields:[userId],references:[id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+model Membership {
+  id String @id @default(uuid())
+  messId String
+  mess Mess @relation(fields:[messId],references:[id])
+  userId String
+  user User @relation(fields:[userId],references:[id])
+  role Role @default(MEMBER)
+  status MemberStatus @default(ACTIVE)
+  joinedAt DateTime @db.Date
+  leftAt DateTime? @db.Date
+  assignments RoomAssignment[]
+  payments Payment[]
+  ledger LedgerEntry[]
+  summaries MealSummary[]
+  dailyMeals DailyMeal[]
+  purchases Purchase[]
+  advances Advance[]
+  bazarAssignments BazarAssignment[]
+  statements Statement[]
+  @@unique([messId,userId])
+  @@index([messId,status])
+}
+model Room {
+  id String @id @default(uuid())
+  messId String
+  mess Mess @relation(fields:[messId],references:[id])
+  name String
+  active Boolean @default(true)
+  rents RoomRent[]
+  assignments RoomAssignment[]
+  @@unique([messId,name])
+}
+model FlatRent {
+  id String @id @default(uuid())
+  messId String
+  effectiveMonth DateTime @db.Date
+  amountPaisa BigInt
+  @@unique([messId,effectiveMonth])
+}
+model RoomRent {
+  id String @id @default(uuid())
+  roomId String
+  room Room @relation(fields:[roomId],references:[id])
+  effectiveMonth DateTime @db.Date
+  amountPaisa BigInt
+  @@unique([roomId,effectiveMonth])
+}
+model RoomAssignment {
+  id String @id @default(uuid())
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  roomId String
+  room Room @relation(fields:[roomId],references:[id])
+  startAt DateTime @db.Date
+  endAt DateTime? @db.Date
+  customSharePaisa BigInt?
+  @@index([memberId,startAt])
+}
+model Period {
+  id String @id @default(uuid())
+  messId String
+  mess Mess @relation(fields:[messId],references:[id])
+  month DateTime @db.Date
+  status PeriodStatus @default(OPEN)
+  revision Int @default(1)
+  mealMode MealMode @default(SUMMARY)
+  breakfastHalf Boolean @default(true)
+  calculationRevision Int?
+  calculationConfirmedAt DateTime?
+  mealRate String?
+  closedAt DateTime?
+  payments Payment[]
+  ledger LedgerEntry[]
+  utilityBills UtilityBill[]
+  summaries MealSummary[]
+  dailyMeals DailyMeal[]
+  purchases Purchase[]
+  advances Advance[]
+  bazarAssignments BazarAssignment[]
+  statements Statement[]
+  @@unique([messId,month])
+}
+model UtilityCategory {
+  id String @id @default(uuid())
+  messId String
+  mess Mess @relation(fields:[messId],references:[id])
+  name String
+  active Boolean @default(true)
+  bills UtilityBill[]
+  @@unique([messId,name])
+}
+model UtilityBill {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  categoryId String
+  category UtilityCategory @relation(fields:[categoryId],references:[id])
+  amountPaisa BigInt
+  method String
+  note String?
+  allocations UtilityAllocation[]
+}
+model UtilityAllocation {
+  id String @id @default(uuid())
+  billId String
+  bill UtilityBill @relation(fields:[billId],references:[id])
+  memberId String
+  amountPaisa BigInt
+  eligibleDays Int
+  reason String?
+  @@unique([billId,memberId])
+}
+model Payment {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  category Category
+  amountPaisa BigInt
+  paidAt DateTime @db.Date
+  method String
+  reference String?
+  status ReviewStatus @default(PENDING)
+  submittedById String
+  reviewedById String?
+  reviewReason String?
+  createdAt DateTime @default(now())
+  @@index([periodId,status])
+}
+model LedgerEntry {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  category Category
+  amountPaisa BigInt
+  kind String
+  sourceKey String @unique
+  reason String?
+  createdAt DateTime @default(now())
+  @@index([memberId,category])
+}
+model MealSummary {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  breakfast Int
+  lunch Int
+  dinner Int
+  @@unique([periodId,memberId])
+}
+model DailyMeal {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  date DateTime @db.Date
+  breakfast Int?
+  lunch Int?
+  dinner Int?
+  @@unique([periodId,memberId,date])
+}
+model BazarAssignment {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  startAt DateTime @db.Date
+  endAt DateTime @db.Date
+  note String?
+}
+model Advance {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  issuedPaisa BigInt
+  returnedPaisa BigInt @default(0)
+  spentPaisa BigInt @default(0)
+  issuedAt DateTime @db.Date
+  note String?
+  purchases Purchase[]
+}
+model Purchase {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  advanceId String?
+  advance Advance? @relation(fields:[advanceId],references:[id])
+  date DateTime @db.Date
+  status ReviewStatus @default(PENDING)
+  funding FundingKind
+  totalPaisa BigInt
+  items Json
+  note String?
+  reviewedById String?
+  reviewReason String?
+  createdAt DateTime @default(now())
+}
+model FundEntry {
+  id String @id @default(uuid())
+  messId String
+  mess Mess @relation(fields:[messId],references:[id])
+  periodId String
+  amountPaisa BigInt
+  kind String
+  sourceKey String @unique
+  note String?
+  createdAt DateTime @default(now())
+  @@index([messId,createdAt])
+}
+model Statement {
+  id String @id @default(uuid())
+  periodId String
+  period Period @relation(fields:[periodId],references:[id])
+  memberId String
+  member Membership @relation(fields:[memberId],references:[id])
+  revision Int
+  category Category
+  openingPaisa BigInt
+  paymentsPaisa BigInt
+  chargesPaisa BigInt
+  adjustmentsPaisa BigInt
+  closingPaisa BigInt
+  detail Json
+  @@unique([periodId,memberId,revision,category])
+}
+model AuditLog {
+  id String @id @default(uuid())
+  messId String
+  mess Mess @relation(fields:[messId],references:[id])
+  actorId String
+  action String
+  entity String
+  entityId String
+  reason String?
+  data Json?
+  createdAt DateTime @default(now())
+}
+model IdempotencyKey {
+  id String @id @default(uuid())
+  messId String
+  key String
+  requestHash String
+  result Json
+  createdAt DateTime @default(now())
+  @@unique([messId,key])
+}
